@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NexusHR — For Code1st</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link href="/static/css/app.css?v=20" rel="stylesheet">
+<style>
+.otp-inputs{display:flex;gap:10px;justify-content:center;margin:20px 0;}
+.otp-digit{width:52px;height:60px;text-align:center;font-size:24px;font-weight:700;background:#1a1d27;border:2px solid #2e3248;border-radius:10px;color:#e2e8f0;font-family:'JetBrains Mono',monospace;transition:border-color .15s;}
+.otp-digit:focus{border-color:#f59e0b;outline:none;box-shadow:0 0 0 3px rgba(245,158,11,.15);}
+.step-indicator{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.step-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.step-dot.active{background:#f59e0b;color:#000;}
+.step-dot.done{background:#22c55e;color:#fff;}
+.step-dot.inactive{background:rgba(255,255,255,.1);color:#64748b;}
+.step-line{flex:1;height:2px;background:rgba(255,255,255,.1);}
+.step-line.done{background:#22c55e;}
+.email-hint{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#f59e0b;text-align:center;margin-bottom:16px;}
+.resend-timer{font-size:13px;color:#64748b;text-align:center;margin-top:8px;}
+.resend-link{color:#f59e0b;cursor:pointer;}
+.login-card-inner{background:#13151c;border:1px solid #272930;border-radius:20px;width:480px;max-width:calc(100vw - 32px);}
+.auth-input{background:#1a1d27!important;border-color:#2e3248!important;color:#e2e8f0!important;}
+.auth-input:focus{border-color:#f59e0b!important;box-shadow:0 0 0 3px rgba(245,158,11,.15)!important;background:#1a1d27!important;color:#e2e8f0!important;}
+.auth-igt{background:#1a1d27!important;border-color:#2e3248!important;color:#64748b!important;}
+.btn-amber{background:#f59e0b!important;color:#000!important;font-weight:700!important;border-color:#f59e0b!important;}
+.btn-amber:hover{background:#fbbf24!important;border-color:#fbbf24!important;}
+.col-row{display:flex;gap:8px;align-items:center;background:#1a1d27;border:1px solid #2e3248;border-radius:8px;padding:10px 14px;margin-bottom:8px;}
+.world-clocks{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:14px;}
+.tz-clock{background:#1a1d27;border:1px solid #2e3248;border-radius:10px;padding:10px 14px;text-align:center;min-width:88px;cursor:pointer;transition:border-color .2s;}
+.tz-clock.active-tz{border-color:#f59e0b;background:rgba(245,158,11,.08);}
+.tz-label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.6px;}
+.tz-time{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;color:#e2e8f0;margin:3px 0 2px;}
+.tz-diff{font-size:10px;color:#64748b;}
+.tz-option{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid #2e3248;border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:8px;}
+.tz-option:hover,.tz-option.selected-tz{border-color:#f59e0b;background:rgba(245,158,11,.08);}
+.tz-option-label{font-weight:600;font-size:14px;color:#e2e8f0;}
+.tz-option-detail{font-size:12px;color:#64748b;margin-top:2px;}
+.tz-option-time{font-family:'JetBrains Mono',monospace;font-size:15px;color:#f59e0b;}
+.btn-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:bspin .6s linear infinite;margin-right:6px;vertical-align:middle;}
+.btn-spinner.dark{border:2px solid rgba(0,0,0,.2);border-top-color:#000;}
+@keyframes bspin{to{transform:rotate(360deg);}}
+
+/* Calendar Grid */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px;}
+.cal-header{text-align:center;font-size:11px;font-weight:700;color:var(--tt-muted);padding:6px 0;text-transform:uppercase;letter-spacing:.6px;}
+.cal-cell{min-height:72px;border-radius:8px;padding:6px;border:1px solid var(--tt-border);background:var(--tt-surface);position:relative;cursor:default;}
+.cal-cell.empty{background:transparent;border-color:transparent;}
+.cal-cell.cal-today{border-color:var(--tt-accent);box-shadow:0 0 0 2px rgba(245,158,11,.2);}
+.cal-cell.cal-present{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);}
+.cal-cell.cal-absent{background:rgba(239,68,68,.06);border-color:rgba(239,68,68,.2);}
+.cal-cell.cal-holiday{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.4);}
+.cal-cell.cal-weekend{background:var(--tt-surface2);border-color:var(--tt-border);}
+.cal-cell.cal-active{background:rgba(56,189,248,.08);border-color:rgba(56,189,248,.3);}
+.cal-day-num{font-size:12px;font-weight:700;color:var(--tt-muted);margin-bottom:4px;}
+.cal-today .cal-day-num{color:var(--tt-accent);}
+.cal-badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cal-badge-present{background:rgba(34,197,94,.2);color:#22c55e;}
+.cal-badge-absent{background:rgba(239,68,68,.15);color:#ef4444;}
+.cal-badge-holiday{background:rgba(245,158,11,.2);color:#f59e0b;}
+.cal-badge-active{background:rgba(56,189,248,.2);color:#38bdf8;}
+.cal-legend{display:flex;gap:16px;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--tt-border);margin-top:8px;}
+.cal-leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--tt-muted);}
+.cal-leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="login-page" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0d0e12;overflow-y:auto;padding:20px 0;">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 700px 500px at 15% 60%,rgba(245,158,11,.06),transparent),radial-gradient(ellipse 500px 400px at 85% 20%,rgba(56,189,248,.05),transparent);pointer-events:none;"></div>
+  <div class="login-card-inner position-relative">
+    <div class="p-5">
+
+      <!-- Brand -->
+      <div class="d-flex align-items-center gap-3 mb-4">
+        <div style="width:52px;height:52px;flex-shrink:0;">
+          <img src="/static/logo/logo.png" alt="NexusHR"
+               style="width:52px;height:52px;object-fit:contain;border-radius:12px;"
+               onerror="this.style.display='none';document.getElementById('login-logo-fallback').style.display='flex'"/>
+          <div id="login-logo-fallback" style="width:52px;height:52px;background:linear-gradient(135deg,#6366f1,#f59e0b);border-radius:14px;display:none;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:20px;letter-spacing:-1px;">N</div>
+        </div>
+        <div>
+          <div style="font-size:22px;font-weight:800;color:#e2e8f0;">Nexus<span style="color:#f59e0b;">HR</span></div>
+          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.8px;">For Code1st</div>
+        </div>
+      </div>
+
+      <!-- STEP: Login -->
+      <div id="step-login">
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Welcome back</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:24px;">Sign in to continue</p>
+        <div class="mb-3">
+          <label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Username or Email</label>
+          <div class="input-group"><span class="input-group-text auth-igt"><i class="bi bi-person"></i></span><input id="l-user" type="text" class="form-control auth-input" placeholder="your.username"/></div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Password</label>
+          <div class="input-group"><span class="input-group-text auth-igt"><i class="bi bi-lock"></i></span><input id="l-pass" type="password" class="form-control auth-input" placeholder="••••••••"/><button class="input-group-text auth-igt" onclick="togglePwd('l-pass',this)" type="button" style="cursor:pointer;"><i class="bi bi-eye"></i></button></div>
+        </div>
+        <div class="text-end mb-3"><a href="#" onclick="showStep('step-forgot-email')" style="font-size:13px;color:#f59e0b;text-decoration:none;">Forgot password?</a></div>
+        <div id="l-err" class="alert py-2 small d-none" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg" onclick="doLoginStep1()"><i class="bi bi-arrow-right me-2"></i>Continue</button>
+        <div class="text-center mt-3"><span style="color:#64748b;font-size:13px;">No account? </span><a href="#" onclick="showStep('step-register')" style="color:#f59e0b;font-size:13px;text-decoration:none;">Create one</a></div>
+      </div>
+
+      <!-- STEP: Login OTP -->
+      <div id="step-login-otp" style="display:none;">
+        <div class="step-indicator"><div class="step-dot done">1</div><div class="step-line done"></div><div class="step-dot active">2</div></div>
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Check your email</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:16px;">We sent a 6-digit code to verify your identity</p>
+        <div id="login-email-hint" class="email-hint"></div>
+        <div class="otp-inputs" id="login-otp-box">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        </div>
+        <div id="login-otp-err" class="alert py-2 small d-none mb-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg mb-2" onclick="doLoginStep2()"><i class="bi bi-shield-check me-2"></i>Verify &amp; Sign In</button>
+        <div class="resend-timer" id="login-resend"></div>
+        <div class="text-center mt-2"><a href="#" onclick="showStep('step-login')" style="color:#64748b;font-size:13px;">Back</a></div>
+      </div>
+
+      <!-- STEP: Register -->
+      <div id="step-register" style="display:none;">
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Create account</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:20px;">Fill in your details to get started</p>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Full Name *</label><input id="r-name" type="text" class="form-control auth-input" placeholder="Jane Doe"/></div>
+          <div class="col-6"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Username *</label><input id="r-user" type="text" class="form-control auth-input" placeholder="jane.doe"/></div>
+        </div>
+        <div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Email Address *</label><input id="r-email" type="email" class="form-control auth-input" placeholder="jane@company.com"/></div>
+        <div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Password * <span style="color:#475569;">(min 8 chars)</span></label>
+          <div class="input-group"><input id="r-pass" type="password" class="form-control auth-input" placeholder="••••••••"/><button class="input-group-text auth-igt" onclick="togglePwd('r-pass',this)" type="button" style="cursor:pointer;"><i class="bi bi-eye"></i></button></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Department</label><input id="r-dept" type="text" class="form-control auth-input" placeholder="Engineering"/></div>
+          <div class="col-6"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Role</label>
+            <select id="r-role" class="form-select auth-input"><option value="employee">Employee</option><option value="manager">Manager</option></select>
+          </div>
+        </div>
+        <!--<div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Invite Code <span style="color:#475569;text-transform:none;letter-spacing:0">(ask your admin)</span></label><input id="r-invite" type="text" class="form-control auth-input" placeholder="Enter your organization invite code"/></div>-->
+        <div id="r-err" class="alert py-2 small d-none mb-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg" onclick="doRegisterStep1()"><i class="bi bi-envelope me-2"></i>Send Verification Code</button>
+        <div class="text-center mt-3"><span style="color:#64748b;font-size:13px;">Already have an account? </span><a href="#" onclick="showStep('step-login')" style="color:#f59e0b;font-size:13px;text-decoration:none;">Sign in</a></div>
+      </div>
+
+      <!-- STEP: Register OTP -->
+      <div id="step-register-otp" style="display:none;">
+        <div class="step-indicator"><div class="step-dot done">1</div><div class="step-line done"></div><div class="step-dot active">2</div></div>
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Verify your email</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Enter the 6-digit code we sent to your email</p>
+        <div id="register-email-hint" class="email-hint"></div>
+        <div class="otp-inputs" id="register-otp-box">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        </div>
+        <div id="register-otp-err" class="alert py-2 small d-none mb-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg mb-2" onclick="doRegisterStep2()"><i class="bi bi-person-check me-2"></i>Verify &amp; Create Account</button>
+        <div class="resend-timer" id="register-resend"></div>
+        <div class="text-center mt-2"><a href="#" onclick="showStep('step-register')" style="color:#64748b;font-size:13px;">Back</a></div>
+      </div>
+
+      <!-- STEP: Forgot - email -->
+      <div id="step-forgot-email" style="display:none;">
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Reset Password</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:24px;">Enter your registered email address</p>
+        <div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Email Address</label><input id="fp-email" type="email" class="form-control auth-input" placeholder="jane@company.com"/></div>
+        <div id="fp-err" class="alert py-2 small d-none mb-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg mb-2" onclick="doForgotStep1()"><i class="bi bi-envelope me-2"></i>Send Reset Code</button>
+        <div class="text-center mt-2"><a href="#" onclick="showStep('step-login')" style="color:#64748b;font-size:13px;">Back to Sign In</a></div>
+      </div>
+
+      <!-- STEP: Forgot - OTP + new password -->
+      <div id="step-forgot-reset" style="display:none;">
+        <div class="step-indicator"><div class="step-dot done">1</div><div class="step-line done"></div><div class="step-dot active">2</div></div>
+        <h4 style="color:#e2e8f0;font-weight:800;margin-bottom:4px;">Reset Your Password</h4>
+        <p style="color:#64748b;font-size:14px;margin-bottom:16px;">Enter the code and your new password</p>
+        <div id="forgot-email-hint" class="email-hint"></div>
+        <div class="otp-inputs" id="forgot-otp-box">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+          <input class="otp-digit" maxlength="1" type="text" inputmode="numeric">
+        </div>
+        <div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">New Password</label>
+          <div class="input-group"><input id="fp-newpwd" type="password" class="form-control auth-input" placeholder="Min 8 characters"/><button class="input-group-text auth-igt" onclick="togglePwd('fp-newpwd',this)" type="button" style="cursor:pointer;"><i class="bi bi-eye"></i></button></div>
+        </div>
+        <div class="mb-3"><label class="form-label" style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.7px;">Confirm Password</label><input id="fp-confirmpwd" type="password" class="form-control auth-input" placeholder="Repeat password"/></div>
+        <div id="fp-reset-err" class="alert py-2 small d-none mb-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+        <button class="btn btn-amber w-100 btn-lg" onclick="doForgotReset()"><i class="bi bi-key me-2"></i>Reset Password</button>
+        <div class="resend-timer" id="forgot-resend"></div>
+        <div class="text-center mt-2"><a href="#" onclick="showStep('step-forgot-email')" style="color:#64748b;font-size:13px;">Back</a></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" style="display:none;" class="app-wrapper">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon sm" style="overflow:hidden;padding:2px;background:transparent;">
+        <img src="/static/logo/logo.png" alt="NexusHR"
+             style="width:100%;height:100%;object-fit:contain;border-radius:8px;"
+             onerror="this.style.display='none';document.getElementById('sb-logo-fallback').style.display='flex'"/>
+        <div id="sb-logo-fallback" style="width:100%;height:100%;background:linear-gradient(135deg,#6366f1,#f59e0b);border-radius:8px;display:none;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px;">N</div>
+      </div>
+      <div class="brand-name sm">Nexus<span>HR</span></div>
+    </div>
+    <div class="sidebar-profile">
+      <div class="user-chip">
+        <div class="user-av" id="sb-av" style="overflow:hidden;padding:0;position:relative;">
+          <span id="sb-av-text" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">JD</span>
+          <img id="sb-av-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:inherit;"/>
+        </div>
+        <div class="user-details">
+          <div class="user-fullname" id="sb-name">—</div>
+          <div class="user-role-badge" id="sb-role">—</div>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav flex-grow-1 overflow-auto" id="sidebar-nav"></nav>
+    <div class="sidebar-bottom">
+      <button class="nav-btn logout-btn" onclick="doLogout()"><i class="bi bi-box-arrow-left"></i><span>Sign Out</span></button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- Employee Dashboard -->
+    <section class="page" id="pg-dashboard">
+      <div class="page-header d-flex justify-content-between align-items-start">
+        <div><h2 class="page-title" id="dash-greeting">Dashboard</h2><p class="page-sub" id="dash-sub">Today's overview</p></div>
+        <div class="live-date-badge"><i class="bi bi-calendar3 me-1"></i><span id="live-date-badge">—</span></div>
+      </div>
+      <div class="row g-4 mb-4">
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#22c55e"><div class="kpi-icon" style="--kc:#22c55e"><i class="bi bi-stopwatch"></i></div><div class="kpi-val" id="k-today">—</div><div class="kpi-lbl">Today's Hours</div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#818cf8"><div class="kpi-icon" style="--kc:#818cf8"><i class="bi bi-calendar-event"></i></div><div class="kpi-val" id="k-month">—</div><div class="kpi-lbl">Month Total</div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#fb923c"><div class="kpi-icon" style="--kc:#fb923c"><i class="bi bi-graph-up"></i></div><div class="kpi-val" id="k-avg">—</div><div class="kpi-lbl">Daily Average</div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#38bdf8"><div class="kpi-icon" style="--kc:#38bdf8"><i class="bi bi-calendar-check"></i></div><div class="kpi-val" id="k-days">—</div><div class="kpi-lbl">Days Present</div></div></div>
+      </div>
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <!-- World Clocks -->
+        <div class="world-clocks" id="world-clocks"></div>
+        <div class="clock-card card border-0"><div class="card-body text-center p-4">
+            <div class="clock-display"><div class="clock-time mono" id="live-clock">00:00:00</div><div style="font-size:11px;color:var(--tt-muted);margin-top:2px;" id="local-tz-label">Local Time</div><div class="clock-date" id="live-date">—</div></div>
+            <div class="status-pill mt-3 mb-3" id="status-pill"><span class="status-dot"></span><span id="status-text">Not clocked in</span></div>
+            <div class="worked-wrap mb-3" id="worked-wrap" style="display:none"><span class="worked-lbl">WORKED</span><span class="worked-val mono" id="worked-val">00:00:00</span></div>
+            <div class="d-flex gap-2 justify-content-center flex-wrap" id="clock-btns"></div>
+          </div></div>
+        </div>
+        <div class="col-lg-7">
+          <div class="card border-0 h-100"><div class="card-body p-4">
+            <h6 class="section-label mb-3"><i class="bi bi-activity me-2"></i>Recent Activity</h6>
+            <div id="recent-activity"><div class="text-muted text-center py-4">Loading...</div></div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- My Timesheets -->
+    <section class="page" id="pg-history">
+      <div class="page-header"><h2 class="page-title">My Timesheets</h2><p class="page-sub">Your monthly attendance history</p></div>
+      <div class="card border-0"><div class="card-body p-4">
+        <div class="d-flex gap-2 flex-wrap mb-3 align-items-center">
+          <select id="h-year" class="form-select w-auto" onchange="loadHistory()"></select>
+          <select id="h-month" class="form-select w-auto" onchange="loadHistory()">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+          <div class="ms-auto btn-group" role="group">
+            <button id="hist-btn-table" class="btn btn-sm btn-outline-secondary active" onclick="toggleHistView('table')"><i class="bi bi-list-ul me-1"></i>List</button>
+            <button id="hist-btn-cal" class="btn btn-sm btn-outline-secondary" onclick="toggleHistView('calendar')"><i class="bi bi-calendar3 me-1"></i>Calendar</button>
+          </div>
+        </div>
+        <!-- Table View -->
+        <div id="hist-table-wrap">
+          <div class="table-responsive">
+            <table class="table table-hover tt-table mb-0">
+              <thead><tr><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Break</th><th>Worked</th><th>Timezone</th><th>Status</th></tr></thead>
+              <tbody id="hist-body"></tbody>
+            </table>
+          </div>
+          <div class="border-top pt-3 mt-3 d-flex justify-content-end">
+            <div class="text-muted small">Total: <span class="mono fw-600 text-white fs-5" id="hist-total">—</span></div>
+          </div>
+        </div>
+        <!-- Calendar View -->
+        <div id="hist-cal-wrap" style="display:none"></div>
+      </div></div>
+    </section>
+
+    <!-- Admin Overview -->
+    <section class="page" id="pg-admin-dash">
+      <div class="page-header"><h2 class="page-title">Admin Overview</h2><p class="page-sub">Company-wide insights</p></div>
+      <div class="row g-4 mb-4">
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#818cf8"><div class="kpi-icon" style="--kc:#818cf8"><i class="bi bi-people"></i></div><div class="kpi-val" id="a-emp">—</div><div class="kpi-lbl">Total Employees</div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#22c55e;cursor:pointer" onclick="showClockedInList()" title="Click to see who is clocked in"><div class="kpi-icon" style="--kc:#22c55e"><i class="bi bi-person-check"></i></div><div class="kpi-val" id="a-in">—</div><div class="kpi-lbl">Clocked In Today <i class="bi bi-box-arrow-up-right ms-1" style="font-size:10px;opacity:.6"></i></div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#fb923c;cursor:pointer" onclick="showOnBreakList()" title="Click to see who is on break"><div class="kpi-icon" style="--kc:#fb923c"><i class="bi bi-cup-hot"></i></div><div class="kpi-val" id="a-brk">—</div><div class="kpi-lbl">On Break <i class="bi bi-box-arrow-up-right ms-1" style="font-size:10px;opacity:.6"></i></div></div></div>
+        <div class="col-6 col-xl-3"><div class="kpi-card" style="--kc:#38bdf8"><div class="kpi-icon" style="--kc:#38bdf8"><i class="bi bi-bar-chart"></i></div><div class="kpi-val" id="a-avg">—</div><div class="kpi-lbl">Avg hrs/Month</div></div></div>
+      </div>
+      <div class="card border-0"><div class="card-body p-4">
+        <h6 class="section-label mb-4"><i class="bi bi-graph-up-arrow me-2"></i>Team Productivity — Last 6 Months</h6>
+        <div style="height:300px"><canvas id="prod-chart"></canvas></div>
+      </div></div>
+    </section>
+
+    <!-- Admin Timesheets -->
+    <section class="page" id="pg-admin-ts">
+      <div class="page-header d-flex justify-content-between align-items-start">
+        <div><h2 class="page-title">All Timesheets</h2><p class="page-sub">View and export employee records</p></div>
+        <button class="btn btn-primary" onclick="openExportModal()"><i class="bi bi-download me-2"></i>Export Report</button>
+      </div>
+      <div class="card border-0"><div class="card-body p-4">
+        <div class="d-flex gap-2 flex-wrap mb-4">
+          <select id="at-emp" class="form-select w-auto" onchange="loadAdminTs()"><option value="">All Employees</option></select>
+          <select id="at-year" class="form-select w-auto" onchange="loadAdminTs()"></select>
+          <select id="at-month" class="form-select w-auto" onchange="loadAdminTs()">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover tt-table mb-0">
+            <thead><tr><th>Employee</th><th>Dept</th><th>Date</th><th>Clock In</th><th>Clock Out</th><th>Break</th><th>Worked</th><th>Timezone</th><th>Status</th></tr></thead>
+            <tbody id="admin-ts-body"></tbody>
+          </table>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- Shifts -->
+    <section class="page" id="pg-shifts">
+      <div class="page-header d-flex justify-content-between align-items-start">
+        <div><h2 class="page-title">Shift Management</h2><p class="page-sub">Define and assign work shifts to employees</p></div>
+        <button class="btn btn-primary" onclick="openAddShiftModal()"><i class="bi bi-plus me-2"></i>Add Shift</button>
+      </div>
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <div class="card border-0"><div class="card-body p-4">
+            <h6 class="section-label mb-3"><i class="bi bi-clock me-2"></i>Defined Shifts</h6>
+            <div id="shifts-list"><div class="text-muted text-center py-4">Loading...</div></div>
+          </div></div>
+        </div>
+        <div class="col-lg-7">
+          <div class="card border-0"><div class="card-body p-4">
+            <h6 class="section-label mb-3"><i class="bi bi-people me-2"></i>Assign Shift to Users</h6>
+            <div class="mb-3">
+              <label class="form-label field-label">Select Shift</label>
+              <select id="assign-shift-select" class="form-select"></select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label field-label">Select Users</label>
+              <div id="assign-users-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--tt-border2);border-radius:10px;padding:8px;"></div>
+            </div>
+            <button class="btn btn-primary w-100" onclick="doAssignShift()"><i class="bi bi-check2 me-2"></i>Assign Shift</button>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Holidays -->
+    <section class="page" id="pg-holidays">
+      <div class="page-header d-flex justify-content-between align-items-start">
+        <div><h2 class="page-title">Holidays</h2><p class="page-sub">Manage company holidays and observances</p></div>
+        <button class="btn btn-primary" onclick="openAddHolidayModal()"><i class="bi bi-plus me-2"></i>Add Holiday</button>
+      </div>
+      <div class="card border-0"><div class="card-body p-4">
+        <div id="holidays-list"><div class="text-muted text-center py-4">Loading...</div></div>
+      </div></div>
+    </section>
+
+    <!-- Users -->
+    <section class="page" id="pg-users">
+      <div class="page-header d-flex justify-content-between align-items-start">
+        <div><h2 class="page-title">Users</h2><p class="page-sub">Manage accounts and roles</p></div>
+        <button class="btn btn-primary" onclick="openAddUserModal()"><i class="bi bi-person-plus me-2"></i>Add User</button>
+      </div>
+      <div class="card border-0"><div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover tt-table mb-0">
+            <thead><tr><th>User</th><th>Email</th><th>Department</th><th>Role</th><th>Shift</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+            <tbody id="users-body"></tbody>
+          </table>
+        </div>
+      </div></div>
+    </section>
+
+    <!-- Shared Sheet -->
+    <section class="page page-full" id="pg-shared-sheet">
+      <div class="sheet-top-bar">
+        <div>
+          <span class="page-title fs-5" id="shared-sheet-title">Shared Sheet</span>
+          <span class="mono text-muted small ms-2">Your personal workspace</span>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <button class="btn btn-sm btn-outline-secondary" onclick="saveSharedData()"><i class="bi bi-floppy me-1"></i>Save</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="downloadSharedCSV()"><i class="bi bi-download me-1"></i>Export CSV</button>
+          <button class="btn btn-sm btn-outline-secondary" id="btn-config-sheet" style="display:none" onclick="openSheetConfig()"><i class="bi bi-gear me-1"></i>Configure Columns</button>
+        </div>
+      </div>
+      <div class="sheet-layout">
+        <div class="sheet-main" style="width:100%">
+          <!-- Toolbar -->
+          <div class="sheet-toolbar" id="ss-toolbar" style="display:none">
+            <button class="tb-btn" onclick="ssAddRow()"><i class="bi bi-plus me-1"></i>Row</button>
+            <button class="tb-btn" onclick="ssDelRow(ssCurRow)">-Row</button>
+            <div class="tb-sep"></div>
+            <span class="tb-label text-muted" style="font-size:11px">Enter to next row &nbsp;·&nbsp; Tab to next column</span>
+          </div>
+          <!-- Empty state -->
+          <div class="sheet-empty text-center" id="ss-empty">
+            <i class="bi bi-table" style="font-size:48px;color:var(--tt-muted)"></i>
+            <div class="mt-3 fw-600">No columns configured</div>
+            <div class="text-muted small mt-1" id="ss-empty-msg">Contact your admin to set up columns</div>
+          </div>
+          <!-- Grid -->
+          <div id="ss-scroll" class="sheet-scroll" style="display:none"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Personal Spreadsheet -->
+    <section class="page page-full" id="pg-spreadsheet">
+      <div class="sheet-top-bar">
+        <div><span class="page-title fs-5">My Spreadsheet</span><span class="mono text-muted small ms-2" id="sheet-current-name">No sheet open</span></div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-secondary" onclick="saveSheet()"><i class="bi bi-floppy me-1"></i>Save</button>
+          <button class="btn btn-sm btn-primary" onclick="downloadCSV()"><i class="bi bi-download me-1"></i>CSV</button>
+        </div>
+      </div>
+      <div class="sheet-layout">
+        <div class="sheet-sidebar">
+          <div class="section-label mb-2" style="font-size:10px">MY SHEETS</div>
+          <button class="btn btn-primary btn-sm w-100 mb-3" onclick="newSheet()"><i class="bi bi-plus me-1"></i>New Sheet</button>
+          <div id="sheet-list"></div>
+        </div>
+        <div class="sheet-main">
+          <div class="sheet-empty text-center" id="sheet-empty">
+            <i class="bi bi-file-earmark-spreadsheet" style="font-size:48px;color:var(--tt-muted)"></i>
+            <div class="mt-3 fw-600">No sheet selected</div>
+            <div class="text-muted small mt-1">Create a new sheet or choose one from the sidebar</div>
+          </div>
+          <div id="sheet-editor" style="display:none;flex-direction:column;height:100%">
+            <div class="sheet-toolbar">
+              <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+              <button class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" onclick="fmtAlign('left')"><i class="bi bi-text-left"></i></button>
+              <button class="tb-btn" onclick="fmtAlign('center')"><i class="bi bi-text-center"></i></button>
+              <button class="tb-btn" onclick="fmtAlign('right')"><i class="bi bi-text-right"></i></button>
+              <div class="tb-sep"></div>
+              <label class="tb-label">Text</label><input type="color" class="color-picker" id="txt-color" value="#212529" onchange="fmtColor(this.value)"/>
+              <label class="tb-label">Fill</label><input type="color" class="color-picker" id="bg-color" value="#ffffff" onchange="fmtBg(this.value)"/>
+              <div class="tb-sep"></div>
+              <select class="tb-select" onchange="setColWidth(this.value)">
+                <option value="80">Narrow</option><option value="110" selected>Normal</option><option value="160">Wide</option><option value="220">X-Wide</option>
+              </select>
+              <div class="tb-sep"></div>
+              <button class="tb-btn" onclick="addRow()">+Row</button>
+              <button class="tb-btn" onclick="addCol()">+Col</button>
+              <button class="tb-btn" onclick="delRow()">-Row</button>
+              <button class="tb-btn" onclick="delCol()">-Col</button>
+              <div class="tb-sep"></div>
+              <button class="tb-btn accent-btn" onclick="evalFormulas()"><i class="bi bi-calculator me-1"></i>Calc</button>
+            </div>
+            <div class="formula-bar"><span class="mono fw-600 text-accent">fx</span><input type="text" id="formula-bar-input" class="mono" placeholder="Value or formula e.g. =SUM(A1:B10)" onchange="applyFormulaBar(this.value)"/></div>
+            <div class="sheet-scroll" id="sheet-scroll"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODALS -->
+<div class="modal fade" id="modal-export" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content tt-modal">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-download me-2"></i>Export Timesheet</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-4">
+      <div class="mb-3"><label class="form-label field-label">Employee</label><select id="exp-emp" class="form-select"></select></div>
+      <div class="row g-3">
+        <div class="col-6"><label class="form-label field-label">Year</label><select id="exp-year" class="form-select"></select></div>
+        <div class="col-6"><label class="form-label field-label">Month</label>
+          <select id="exp-month" class="form-select">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="doExport()"><i class="bi bi-download me-2"></i>Download CSV</button></div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="modal-add-user" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content tt-modal">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Add New User</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-4">
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label field-label">Full Name *</label><input type="text" id="nu-name" class="form-control" placeholder="Jane Doe"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Username *</label><input type="text" id="nu-user" class="form-control" placeholder="jane.doe"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Email *</label><input type="email" id="nu-email" class="form-control" placeholder="jane@company.com"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Password *</label><input type="password" id="nu-pass" class="form-control" placeholder="min 8 characters"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Department</label><input type="text" id="nu-dept" class="form-control" placeholder="Engineering"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Role</label><select id="nu-role" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select></div>
+        <div class="col-md-6"><label class="form-label field-label">Shift Start</label><input type="time" id="nu-start" class="form-control" value="09:00"/></div>
+        <div class="col-md-6"><label class="form-label field-label">Shift End</label><input type="time" id="nu-end" class="form-control" value="18:00"/></div>
+      </div>
+      <div id="nu-err" class="alert alert-danger py-2 small mt-3 d-none"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="doAddUser()"><i class="bi bi-person-plus me-2"></i>Add User</button></div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="modal-role" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content tt-modal">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-shield-lock me-2"></i>Change Role</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-4">
+      <p class="text-muted small mb-3">Changing role for: <strong id="role-target-name">—</strong></p>
+      <input type="hidden" id="role-target-id"/>
+      <label class="form-label field-label">New Role</label>
+      <select id="role-select" class="form-select"><option value="employee">Employee</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-warning" onclick="doChangeRole()"><i class="bi bi-shield-check me-2"></i>Save Role</button></div>
+  </div></div>
+</div>
+
+<div class="modal fade" id="modal-sheet-config" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content tt-modal">
+    <div class="modal-header"><h5 class="modal-title"><i class="bi bi-gear me-2"></i>Configure Shared Sheet</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body p-4">
+      <div class="mb-3"><label class="form-label field-label">Sheet Name</label><input type="text" id="sc-name" class="form-control" placeholder="Shared Sheet"/></div>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <label class="form-label field-label mb-0">Columns</label>
+        <button class="btn btn-sm btn-outline-secondary" onclick="addSheetColumn()"><i class="bi bi-plus me-1"></i>Add Column</button>
+      </div>
+      <div id="sc-columns"></div>
+      <div class="mt-3"><div class="form-check"><input class="form-check-input" type="checkbox" id="sc-reset-data"/><label class="form-check-label text-muted small" for="sc-reset-data">Reset all existing data rows when saving</label></div></div>
+      <div id="sc-err" class="alert alert-danger py-2 small mt-3 d-none"></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" onclick="saveSheetConfig()"><i class="bi bi-floppy me-2"></i>Save Configuration</button></div>
+  </div></div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3" id="toast-container"></div>
+
+<!-- Timezone Modal — must be BEFORE app.js loads -->
+<div class="modal fade" id="modal-timezone" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content tt-modal">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-globe me-2"></i>Select Your Timezone</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted small mb-3">Select your timezone before clocking in. This will be saved for future sessions.</p>
+        <div id="tz-options"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary btn-amber" onclick="doClockInWithTz()">
+          <i class="bi bi-play-circle me-2"></i>Clock In Now
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/static/js/app.js?v=61"></script>
+<!-- Add Shift Modal -->
+<div class="modal fade" id="modal-shift" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content tt-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shift-modal-title"><i class="bi bi-clock me-2"></i>Add Shift</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="shift-edit-id"/>
+        <div class="mb-3"><label class="form-label field-label">Shift Name *</label><input id="shift-name" type="text" class="form-control" placeholder="e.g. Morning Shift"/></div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label field-label">Start Time *</label><input id="shift-start" type="time" class="form-control"/></div>
+          <div class="col-6"><label class="form-label field-label">End Time *</label><input id="shift-end" type="time" class="form-control"/></div>
+        </div>
+        <div class="mb-3"><label class="form-label field-label">Description</label><input id="shift-desc" type="text" class="form-control" placeholder="Optional"/></div>
+        <div id="shift-err" class="alert py-2 small d-none" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="doSaveShift()"><i class="bi bi-check2 me-2"></i>Save Shift</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="modal-edit-user" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content tt-modal">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Edit User</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="eu-id"/>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label field-label">Full Name *</label><input id="eu-name" type="text" class="form-control"/></div>
+          <div class="col-md-6"><label class="form-label field-label">Email *</label><input id="eu-email" type="email" class="form-control"/></div>
+          <div class="col-md-6"><label class="form-label field-label">Department</label><input id="eu-dept" type="text" class="form-control"/></div>
+          <div class="col-md-3"><label class="form-label field-label">Shift Start</label><input id="eu-start" type="time" class="form-control"/></div>
+          <div class="col-md-3"><label class="form-label field-label">Shift End</label><input id="eu-end" type="time" class="form-control"/></div>
+        </div>
+        <div class="mt-3">
+          <label class="form-label field-label">Profile Photo</label>
+          <div class="d-flex align-items-center gap-3">
+            <div id="eu-photo-preview" style="width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#f97316);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:#000;overflow:hidden;flex-shrink:0;" id="eu-av-wrap">
+              <span id="eu-av-initials">?</span>
+              <img id="eu-av-img" src="" alt="" style="width:100%;height:100%;object-fit:cover;display:none;border-radius:inherit;"/>
+            </div>
+            <div>
+              <input type="file" id="eu-photo-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewPhoto(this)"/>
+              <button class="btn btn-sm btn-outline-secondary me-2" onclick="document.getElementById('eu-photo-input').click()"><i class="bi bi-upload me-1"></i>Upload Photo</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="removePhoto()"><i class="bi bi-trash3 me-1"></i>Remove</button>
+              <div class="text-muted small mt-1">JPEG/PNG, max 500KB</div>
+            </div>
+          </div>
+        </div>
+        <div id="eu-err" class="alert py-2 small d-none mt-3" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="doEditUser()"><i class="bi bi-check2 me-2"></i>Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Holiday Modal -->
+<div class="modal fade" id="modal-holiday" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content tt-modal">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-calendar-x me-2"></i>Add Holiday</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label field-label">Date *</label>
+          <input id="hol-date" type="date" class="form-control"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label field-label">Holiday Name *</label>
+          <input id="hol-name" type="text" class="form-control" placeholder="e.g. Republic Day"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label field-label">Description</label>
+          <input id="hol-desc" type="text" class="form-control" placeholder="Optional description"/>
+        </div>
+        <div id="hol-err" class="alert py-2 small d-none" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3);color:#fca5a5;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" onclick="doAddHoliday()"><i class="bi bi-plus me-2"></i>Add Holiday</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Attendance Detail Modal -->
+<div class="modal fade" id="modal-attendance-detail" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content tt-modal">
+      <div class="modal-header">
+        <h5 class="modal-title" id="attendance-modal-title"><i class="bi bi-people me-2"></i>Attendance Detail</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4" id="attendance-modal-body">
+        <div class="text-muted text-center py-4">Loading...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button class="btn btn-outline-secondary" onclick="loadAdminDash()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
